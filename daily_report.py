@@ -7,146 +7,138 @@ except ImportError:
     import akshare as ak
 
 import pandas as pd
-pd.set_option('display.max_columns', None)
-pd.set_option('display.width', 200)
 
-def safe_call(fn, default=None, *a, **kw):
+def ec(fn, *a, **kw):
     try: return fn(*a, **kw)
     except Exception as e:
-        if default is not None: return default
-        return {}
+        print("skip: " + str(e))
+        return None
 
-print("1/10 澶х洏琛屾儏...")
-try:
-    df = ak.stock_zh_index_daily(symbol="sh000001")
-    sh_close = df.iloc[-1]['close']
-    sh_open = df.iloc[-1]['open']
-    sh_pct = (sh_close - sh_open) / sh_open * 100
-except Exception as e:
-    sh_close, sh_pct = '--', 0
-    print(f"  skip: {e}")
+print("Fetching market data...")
 
-print("2/10 娑ㄨ穼鍒嗗竷...")
-try:
-    df = ak.stock_zh_a_spot_em()
-    up = int((df['娑ㄨ穼骞?] > 0).sum())
-    down = int((df['娑ㄨ穼骞?] < 0).sum())
-    limit_up_df = df[df['娑ㄨ穼骞?] >= 9.8].head(15)
-except Exception as e:
-    up, down, limit_up_df = 0, 0, pd.DataFrame()
-    print(f"  skip: {e}")
+# 1. 大盘
+idx = ec(ak.stock_zh_index_daily, symbol="sh000001")
+if idx is not None:
+    last = idx.iloc[-1]
+    sh_c = last['close']
+    sh_pct = (sh_c - last['open']) / last['open'] * 100
+else:
+    sh_c, sh_pct = '--', 0
 
-print("3/10 娑ㄥ仠鏉?..")
-try:
-    df_zt = ak.stock_zt_pool_em(date="20260701")
-    zt_count = len(df_zt)
-    zt_top = df_zt.head(10)
-except Exception as e:
-    zt_count, zt_top = 0, pd.DataFrame()
-    print(f"  skip: {e}")
+# 2. 全市场
+sp = ec(ak.stock_zh_a_spot_em)
+up = down = 0
+limit_list = []
+if sp is not None:
+    cols = sp.columns.tolist()
+    print("columns: " + str(cols))
+    up = int((sp.iloc[:, 3].astype(float) > 0).sum())
+    down = int((sp.iloc[:, 3].astype(float) < 0).sum())
+    limit10 = sp[sp.iloc[:, 3].astype(float) >= 9.8].head(10)
 
-print("4/10 鏉垮潡鎺掕...")
-try:
-    df_board = ak.stock_board_industry_name_em()
-    top_sectors = df_board.sort_values('娑ㄨ穼骞?, ascending=False).head(5)
-except Exception as e:
-    top_sectors = pd.DataFrame()
-    print(f"  skip: {e}")
+# 3. 涨停
+zt = ec(ak.stock_zt_pool_em, date="20260701")
+zt_count = 0
+zt_top = pd.DataFrame()
+if zt is not None:
+    zt_count = len(zt)
+    zt_top = zt.head(10)
 
-print("5/10 鍖楀悜璧勯噾...")
-try:
-    df_north = ak.stock_hsgt_north_net_flow_in_em(symbol="娌偂閫?)
-    north_val = df_north['value'].iloc[-1]
-except Exception as e:
-    north_val = '--'
-    print(f"  skip: {e}")
+# 4. 板块
+bd = ec(ak.stock_board_industry_name_em)
+top_sec = pd.DataFrame()
+if bd is not None:
+    cols = bd.columns.tolist()
+    print("board cols: " + str(cols))
+    top_sec = bd.sort_values(by=bd.columns[3], ascending=False).head(5)
 
-print("6/10 铻嶈祫铻嶅埜...")
-try:
-    df_rz = ak.stock_margin_sz_sh_szse(start_date="20260701")
-    rz_val = df_rz.iloc[-1]
-except Exception as e:
-    rz_val = None
-    print(f"  skip: {e}")
+# 5. 北向
+nf = ec(ak.stock_hsgt_north_net_flow_in_em, symbol="沪股通")
+n_val = '--'
+if nf is not None and len(nf) > 0:
+    n_val = nf['value'].iloc[-1]
 
-print("7/10 鍏ㄧ悆鎸囨暟...")
-try:
-    df_us = ak.stock_us_spot_em()
-except Exception as e:
-    df_us = pd.DataFrame()
-    print(f"  skip: {e}")
+# 6. 融资
+rz = ec(ak.stock_margin_sz_sh_szse, start_date="20260701")
+rz_str = '--'
+if rz is not None and len(rz) > 0:
+    rz_str = str(rz.iloc[-1].get('融资余额', rz.iloc[-1][0]))
 
-print("8/10 榫欒檸姒?..")
-try:
-    df_lh = ak.stock_lhb_jgmm_tj_em()
-    lh_top = df_lh.head(5)
-except Exception as e:
-    lh_top = pd.DataFrame()
-    print(f"  skip: {e}")
+# 7. 龙虎榜
+lh = ec(ak.stock_lhb_jgmm_tj_em)
+lh_top = pd.DataFrame()
+if lh is not None:
+    lh_top = lh.head(5)
 
-print("9/10 琛屼笟璧勯噾...")
-try:
-    df_fund = ak.stock_sector_fund_flow_rank(indicator="浠婃棩", sector_type="琛屼笟璧勯噾娴佸悜")
-    top_fund = df_fund.head(5)
-except Exception as e:
-    top_fund = pd.DataFrame()
-    print(f"  skip: {e}")
+# 8. 行业资金
+fund = ec(ak.stock_sector_fund_flow_rank, indicator="今日", sector_type="行业资金流向")
+fund_top = pd.DataFrame()
+if fund is not None:
+    fund_top = fund.head(5)
 
-print("10/10 鐢熸垚鎶ュ憡...")
-
+# 生成报告
 lines = []
-lines.append("A鑲＄洏鍓嶅垎鏋愭姤鍛?)
-lines.append("鏃堕棿: " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
+lines.append("A股盘前分析")
+lines.append(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
 lines.append("")
-lines.append("銆愬ぇ鐩樻寚鏁般€?)
-lines.append("涓婅瘉: {} ({:+.2f}%)".format(sh_close, sh_pct))
+
+lines.append("[大盘]")
+lines.append("上证: {} ({:+.2f}%)".format(sh_c, sh_pct))
+lines.append("涨:{} 跌:{}".format(up, down))
+lines.append("涨停:{}只".format(zt_count))
 lines.append("")
-lines.append("銆愭定璺屽垎甯冦€?)
-lines.append("涓婃定: {} 涓嬭穼: {}".format(up, down))
-lines.append("娑ㄥ仠: {}鍙?.format(zt_count))
+
+if n_val != '--':
+    lines.append("[北向]")
+    lines.append("沪股通: {:.0f}亿".format(n_val))
+    lines.append("")
+
+lines.append("[融资余额]")
+lines.append(str(rz_str))
 lines.append("")
-if north_val != '--':
-    lines.append("銆愬寳鍚戣祫閲戙€?)
-    lines.append("娌偂閫? {:.0f}浜?.format(north_val))
+
+if len(top_sec) > 0:
+    lines.append("[强势板块]")
+    for _, r in top_sec.iterrows():
+        lines.append("  {}: {:+.2f}%".format(r.iloc[1], r.iloc[3]))
     lines.append("")
-if rz_val is not None:
-    lines.append("銆愯瀺璧勮瀺鍒搞€?)
-    lines.append("铻嶈祫浣欓: " + str(rz_val.get('铻嶈祫浣欓', '--')))
+
+if len(fund_top) > 0:
+    lines.append("[资金流入]")
+    for _, r in fund_top.iterrows():
+        lines.append("  {}: {}".format(r.iloc[0], r.iloc[2]))
     lines.append("")
-if len(top_sectors) > 0:
-    lines.append("銆愬己鍔挎澘鍧椼€?)
-    for _, r in top_sectors.iterrows():
-        lines.append("  {}: {:+.2f}%".format(r['鏉垮潡鍚嶇О'], r['娑ㄨ穼骞?]))
-    lines.append("")
-if len(top_fund) > 0:
-    lines.append("銆愯祫閲戞祦鍏ヨ涓氥€?)
-    for _, r in top_fund.iterrows():
-        lines.append("  {}: {}".format(r['琛屼笟'], r['涓诲姏鍑€娴佸叆-鍑€棰?]))
-    lines.append("")
+
 if zt_count > 0:
-    lines.append("銆愭定鍋滆仛鐒︺€?)
+    lines.append("[涨停聚焦]")
     for _, r in zt_top.iterrows():
-        lines.append("  {} {}: {:.1f}%".format(r['浠ｇ爜'], r['鍚嶇О'], r['娑ㄨ穼骞?]))
+        lines.append("  {}: {:.1f}%".format(r.iloc[1], r.iloc[3]))
     lines.append("")
+
 if len(lh_top) > 0:
-    lines.append("銆愰緳铏庢鍏虫敞銆?)
+    lines.append("[龙虎榜]")
     for _, r in lh_top.iterrows():
-        lines.append("  {} {}: {}浜?.format(r.get('鑲＄エ浠ｇ爜',''), r.get('鑲＄エ鍚嶇О',''), round(r.get('鎴愪氦棰?,0)/1e8, 2)))
+        lines.append("  {} {}: {}亿".format(
+            r.iloc[0], r.iloc[1],
+            round(float(r.iloc[3])/1e8, 2) if '亿' not in str(r.iloc[3]) else r.iloc[3]))
     lines.append("")
 
 content = '\n'.join(lines)
+print("=== REPORT ===")
 print(content)
 
-token = os.environ.get('PUSHPLUS_TOKEN', os.environ.get('TOKEN', ''))
-if token:
-    push_data = {'token': token, 'title': 'A鑲＄洏鍓嶅垎鏋?, 'content': content, 'template': 'txt'}
-    req = urllib.request.Request(
-        'http://www.pushplus.plus/send',
-        data=json.dumps(push_data).encode('utf-8'),
+t = os.environ.get('PUSHPLUS_TOKEN', os.environ.get('TOKEN', ''))
+if t:
+    d = {'token': t, 'title': 'A股盘前', 'content': content, 'template': 'txt'}
+    r = urllib.request.Request('http://www.pushplus.plus/send',
+        data=json.dumps(d).encode('utf-8'),
         headers={'Content-Type': 'application/json'}, method='POST')
     try:
-        resp = urllib.request.urlopen(req, timeout=15)
-        r = json.loads(resp.read())
-        print("鎺ㄩ€? " + ("鎴愬姛" if r.get('code')==200 else "澶辫触"))
+        resp = urllib.request.urlopen(r, timeout=15)
+        result = json.loads(resp.read())
+        if result.get('code') == 200:
+            print("PUSH OK")
+        else:
+            print("PUSH fail: " + str(result))
     except Exception as e:
-        print("鎺ㄩ€佸け璐? " + str(e))
+        print("PUSH error: " + str(e))
