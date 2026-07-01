@@ -1,4 +1,5 @@
-name: A鑲＄洏鍓嶅垎鏋?on:
+name: Daily Report
+on:
   schedule:
     - cron: '30 0 * * 1-5'
   workflow_dispatch:
@@ -7,9 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 瀹夎渚濊禆
+      - name: Install deps
         run: pip install akshare pandas --quiet 2>/dev/null || true
-      - name: 杩愯鐩樺墠鍒嗘瀽
+      - name: Run analysis
         run: python3 daily_report.py
         env:
           PUSHPLUS_TOKEN: ${{ secrets.WX_PUSH_KEY }}
