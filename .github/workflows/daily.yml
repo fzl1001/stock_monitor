@@ -1,0 +1,295 @@
+name: A鑲＄洏鍓嶅垎鏋?
+on:
+  schedule:
+    - cron: '30 0 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 1/18 鍩虹琛屾儏 + 娑ㄥ仠 + 娑ㄨ穼瀹舵暟
+        run: |
+          echo "=== 1/18 鍩虹琛屾儏 ==="
+          curl -s "https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=50&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:0+t:81,m:1+t:2&fields=f12,f14,f2,f3,f4,f5,f6,f8,f9,f10,f15,f16,f17,f18,f20,f21,f23,f37,f38,f62,f66,f69,f72,f78,f84,f87,f92,f115,f124,f128,f140,f136,f152,f184,f347" > stocks.json
+          curl -s "https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=20&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6&fields=f12,f14,f2,f3,f4,f8,f10,f15,f62,f184,f169,f170,f171" > limitup.json
+          curl -s "https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f62&po=1&pz=20&pn=1&np=1&fltt=2&invt=2&fs=b:STOP%AND+BK0888&fields=f12,f14,f62,f3,f5,f8,f15" > newhigh.json
+          curl -s "https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=9999&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:0+t:80,m:0+t:81&fields=f12,f14,f2,f3" > updown.json
+          echo "  涓偂鏁? $(cat stocks.json | python3 -c "import sys,json;d=json.load(sys.stdin);print(len(d.get('data',{}).get('diff',[])))" 2>/dev/null)"
+
+      - name: 2/18 鏉垮潡 + 姒傚康
+        run: |
+          echo "=== 2/18 鏉垮潡 ==="
+          curl -s "https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=10&pn=1&np=1&fltt=2&invt=2&fs=m:90+t:2&fields=f12,f14,f2,f3,f4,f5,f6,f8,f10,f15,f20,f21,f62" > sectors.json
+          curl -s "https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=10&pn=1&np=1&fltt=2&invt=2&fs=m:90+t:3&fields=f12,f14,f2,f3,f4,f5,f6,f8,f10,f15,f20,f21,f62" > concepts.json
+
+      - name: 3/18 璧勯噾闈?- 鍖楀悜/涓よ瀺/ETF/鍗楀悜
+        run: |
+          echo "=== 3/18 璧勯噾 ==="
+          curl -s "https://push2.eastmoney.com/api/qt/kamt.kline/get?secid1=1.000001&secid2=0.000688&fields1=f1,f2,f3,f4,f5,f6&fields2=f1,f2,f3,f4,f5,f6&klt=1&lmt=1" > northflow.json
+          curl -s "https://push2.eastmoney.com/api/qt/kamt.kline/get?secid1=0.000688&secid2=0.000688&fields1=f1,f2,f3,f4,f5,f6&fields2=f1,f2,f3,f4,f5,f6&klt=1&lmt=1" > southflow.json
+          curl -s "https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=10&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6&fields=f12,f14,f122,f123,f124,f125,f126,f127,f128,f129,f130" > margin.json
+          curl -s "https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=10&pn=1&np=1&fltt=2&invt=2&fs=b:MK0021&fields=f12,f14,f3,f62,f8,f20,f21" > etf.json
+
+      - name: 4/18 鍏ㄧ悆鎸囨暟 + 璺ㄥ競鍦?        run: |
+          echo "=== 4/18 鍏ㄧ悆 ==="
+          curl -s "https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=10&pn=1&np=1&fltt=2&invt=2&fs=m:86+t:3,m:83+t:3,m:128+t:3,m:105+t:3,m:109+t:3,m:100+t:3&fields=f12,f14,f2,f3,f4" > globalidx.json
+          curl -s "https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=10&pn=1&np=1&fltt=2&invt=2&fs=m:128+t:3&fields=f12,f14,f2,f3" > hk.json
+          curl -s "https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=10&pn=1&np=1&fltt=2&invt=2&fs=m:105+t:3,m:105+t:1&fields=f12,f14,f2,f3" > us.json
+          curl -s "https://push2.eastmoney.com/api/qt/clist/get?cb=&fid=f3&po=1&pz=10&pn=1&np=1&fltt=2&invt=2&fs=m:0+t:6,m:1+t:2&fields=f12,f14,f3,f133,f23,f37" > ah_compare.json
+
+      - name: 5/18 瀹忚 - 缇庢寚/榛勯噾/鍘熸补/鍥藉€?VIX/鏈熻揣
+        run: |
+          echo "=== 5/18 瀹忚 ==="
+          curl -s "https://push2.eastmoney.com/api/qt/stock/get?secid=100.USDINDEX&fields=f43,f44,f45,f46,f47,f48,f50,f57,f58" > dollar.json
+          curl -s "https://push2.eastmoney.com/api/qt/stock/get?secid=113.AU00Y&fields=f43,f44,f45,f46,f47,f48" > gold.json
+          curl -s "https://push2.eastmoney.com/api/qt/bond/get?secid=116.019547&fields=f43,f44,f45" > bond10y.json
+          curl -s "https://push2.eastmoney.com/api/qt/stock/get?secid=100.VIX&fields=f43,f44,f45" > vix.json
+          curl -s "https://push2.eastmoney.com/api/qt/stock/get?secid=113.SC00Y&fields=f43,f44,f45,f46,f47,f48" > oil.json
+          curl -s "https://push2.eastmoney.com/api/qt/stock/get?secid=113.TF00&fields=f43,f44,f45,f46,f47,f48" > bondfut.json
+          curl -s "https://push2.eastmoney.com/api/qt/stock/get?secid=113.IF00&fields=f43,f44,f45,f46,f47,f48" > if_fut.json
+          curl -s "https://push2.eastmoney.com/api/qt/stock/get?secid=113.IH00&fields=f43,f44,f45,f46,f47,f48" > ih_fut.json
+          curl -s "https://push2.eastmoney.com/api/qt/stock/get?secid=113.IC00&fields=f43,f44,f45,f46,f47,f48" > ic_fut.json
+          curl -s "https://push2.eastmoney.com/api/qt/stock/get?secid=113.IM00&fields=f43,f44,f45,f46,f47,f48" > im_fut.json
+
+      - name: 6/18 蹇 + 鏀跨瓥 + 鏂伴椈
+        run: |
+          echo "=== 6/18 鏂伴椈 ==="
+          curl -s -H "User-Agent: Mozilla/5.0" "https://www.cls.cn/telegraph" 2>/dev/null | head -c 3000 > news_cls.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "https://wallstreetcn.com/live/global" 2>/dev/null | head -c 2000 > news_wallst.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "https://xuangubao.cn/" 2>/dev/null | head -c 2000 > news_xuan.txt
+
+      - name: 7/18 浜嬩欢椹卞姩 - 瑙ｇ/鏂拌偂/鍙浆鍊?        run: |
+          echo "=== 7/18 浜嬩欢 ==="
+          curl -s "https://data.eastmoney.com/dxf/q/" -H "User-Agent: Mozilla/5.0" 2>/dev/null | head -c 1000 > unlock.dat
+          curl -s "https://data.eastmoney.com/xg/xg/" -H "User-Agent: Mozilla/5.0" 2>/dev/null | head -c 1000 > ipo_cal.dat
+          curl -s "https://data.eastmoney.com/kzz/" -H "User-Agent: Mozilla/5.0" 2>/dev/null | head -c 1000 > convbond.dat
+
+      - name: 8/18 鎯呯华 - 閲忚兘 / 闆悆 / 鍚岃姳椤虹儹姒?        run: |
+          echo "=== 8/18 鎯呯华 ==="
+          curl -s "https://push2.eastmoney.com/api/qt/slist/get?cb=&fltt=2&invt=2&fields=f1,f2,f3,f4,f5,f6,f7,f8&s=1.000001,0.399001,0.399006,1.000688,1.000016,0.399005" > marketvol.json
+          curl -s -H "User-Agent: Mozilla/5.0" "https://xueqiu.com/statuses/hot/list.json?type=10&count=10" 2>/dev/null | head -c 2000 > xueqiu.dat
+          curl -s -H "User-Agent: Mozilla/5.0" "https://www.10jqka.com.cn/" 2>/dev/null | head -c 2000 > ths_hot.txt
+
+      - name: 9/18 鏈烘瀯琛屼负 - 澧炲噺鎸?榫欒檸姒?        run: |
+          echo "=== 9/18 鏈烘瀯 ==="
+          curl -s "https://data.eastmoney.com/executive/" -H "User-Agent: Mozilla/5.0" 2>/dev/null | head -c 1000 > sharechange.dat
+          curl -s -H "User-Agent: Mozilla/5.0" "https://data.eastmoney.com/stock/tradedetail.html" 2>/dev/null | head -c 2000 > dragontiger.dat
+
+      - name: 10/18 浜т笟閾句环鏍?        run: |
+          echo "=== 10/18 浜т笟閾?==="
+          curl -s -H "User-Agent: Mozilla/5.0" "https://www.100ppi.com/" 2>/dev/null | head -c 2000 > ppi_price.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "https://zhujia.zhuwang.cc/" 2>/dev/null | head -c 2000 > pig_price.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "https://www.mysteel.com/" 2>/dev/null | head -c 2000 > steel_price.txt
+
+      - name: 11/18 澶 + 澶栨眹
+        run: |
+          echo "=== 11/18 澶 ==="
+          curl -s -H "User-Agent: Mozilla/5.0" "http://www.pbc.gov.cn/zhengcehuobisi/125207/125213/" 2>/dev/null | head -c 2000 > pbc.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "https://www.chinamoney.com.cn/" 2>/dev/null | head -c 2000 > chinamoney.txt
+
+      - name: 12/18 鎶曡祫鑰?鏈烘瀯浠撲綅
+        run: |
+          echo "=== 12/18 鎶曡祫鑰?==="
+          curl -s -H "User-Agent: Mozilla/5.0" "http://www.chinaclear.cn/" 2>/dev/null | head -c 2000 > chinaclear.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "https://fund.eastmoney.com/data/fundposition.html" 2>/dev/null | head -c 2000 > fund_position.txt
+
+      - name: 13/18 璇佺洃浼?浜ゆ槗鎵€鐩戠
+        run: |
+          echo "=== 13/18 鐩戠 ==="
+          curl -s -H "User-Agent: Mozilla/5.0" "http://www.csrc.gov.cn/" 2>/dev/null | head -c 2000 > csrc.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "http://www.sse.com.cn/" 2>/dev/null | head -c 2000 > sse.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "https://www.szse.cn/" 2>/dev/null | head -c 2000 > szse.txt
+
+      - name: 14/18 鏀跨瓥 - 鍙戞敼濮?宸ヤ俊閮?鍟嗗姟閮?        run: |
+          echo "=== 14/18 鏀跨瓥 ==="
+          curl -s -H "User-Agent: Mozilla/5.0" "https://www.ndrc.gov.cn/" 2>/dev/null | head -c 2000 > ndrc.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "https://www.miit.gov.cn/" 2>/dev/null | head -c 2000 > miit.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "http://www.mofcom.gov.cn/" 2>/dev/null | head -c 2000 > mofcom.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "https://www.gov.cn/" 2>/dev/null | head -c 2000 > gov.txt
+
+      - name: 15/18 澶╂皵/姘斿€?鐤儏
+        run: |
+          echo "=== 15/18 姘斿€?==="
+          curl -s -H "User-Agent: Mozilla/5.0" "http://www.cma.gov.cn/" 2>/dev/null | head -c 2000 > weather.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "http://www.chinadaily.com.cn/" 2>/dev/null | head -c 2000 > climate_news.txt
+
+      - name: 16/18 娴峰鍏崇郴/鍦扮紭鏀挎不
+        run: |
+          echo "=== 16/18 鍦扮紭 ==="
+          curl -s -H "User-Agent: Mozilla/5.0" "https://www.fmprc.gov.cn/" 2>/dev/null | head -c 2000 > mfa.txt
+          curl -s -H "User-Agent: Mozilla/5.0" "https://www.reuters.com/" 2>/dev/null | head -c 2000 > reuters.txt
+
+      - name: 17/18 Python缁煎悎璇勫垎鍒嗘瀽
+        run: |
+          echo "=== 17/18 鍒嗘瀽 ==="
+          python3 << 'PYEOF'
+          import json
+          result = {"time": "$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M')", "status": "ok"}
+
+          stocks = []
+          try:
+              with open('stocks.json') as f:
+                  d = json.load(f)
+              for s in d.get('data',{}).get('diff',[])[:50]:
+                  code = s.get('f12','')
+                  if code.startswith(('300','301','688')): continue
+                  if 'ST' in code: continue
+                  stocks.append({'c':code,'n':s.get('f14',''),'p':s.get('f3',0),'v':s.get('f23',0),'f':s.get('f62',0),'t':s.get('f8',0),'a':s.get('f37',0),'pe':s.get('f9',0),'mv':s.get('f20',0)})
+          except Exception as e: print(f"涓偂瑙ｆ瀽: {e}")
+
+          north = {}
+          try:
+              with open('northflow.json') as f:
+                  d = json.load(f)
+              if d.get('data',{}).get('klines'):
+                  last = d['data']['klines'][-1].split(',')
+                  north = {'t':last[2],'s':last[3],'z':last[4]}
+          except: pass
+
+          sectors, concepts = [], []
+          try:
+              with open('sectors.json') as f: d=json.load(f); sectors=[{'n':s.get('f14',''),'p':s.get('f3',0),'f':s.get('f62',0)} for s in d.get('data',{}).get('diff',[])[:5]]
+              with open('concepts.json') as f: d=json.load(f); concepts=[{'n':s.get('f14',''),'p':s.get('f3',0)} for s in d.get('data',{}).get('diff',[])[:5]]
+          except: pass
+
+          limit_up = []
+          try:
+              with open('limitup.json') as f:
+                  d = json.load(f)
+              for s in d.get('data',{}).get('diff',[]):
+                  limit_up.append({'c':s.get('f12',''),'n':s.get('f14',''),'p':s.get('f3',0),'t':s.get('f169','')})
+          except: pass
+
+          gold=dollar=oil=vix=bond10y={}
+          try:
+              with open('gold.json') as f: d=json.load(f); gold={'p':d.get('data',{}).get('f43',0),'c':d.get('data',{}).get('f44',0)}
+              with open('dollar.json') as f: d=json.load(f); dollar={'p':d.get('data',{}).get('f43',0),'c':d.get('data',{}).get('f44',0)}
+              with open('oil.json') as f: d=json.load(f); oil={'p':d.get('data',{}).get('f43',0),'c':d.get('data',{}).get('f44',0)}
+              with open('vix.json') as f: d=json.load(f); vix={'p':d.get('data',{}).get('f43',0),'c':d.get('data',{}).get('f44',0)}
+              with open('bond10y.json') as f: d=json.load(f); bond10y={'y':d.get('data',{}).get('f43',0)}
+          except: pass
+
+          up=down=0
+          try:
+              with open('updown.json') as f:
+                  for s in json.load(f).get('data',{}).get('diff',[]):
+                      pct = s.get('f3','')
+                      if pct and pct != '-':
+                          if float(pct) > 0: up+=1
+                          elif float(pct) < 0: down+=1
+          except: pass
+
+          glob_idx = []
+          try:
+              with open('globalidx.json') as f:
+                  for s in json.load(f).get('data',{}).get('diff',[]):
+                      glob_idx.append({'n':s.get('f14',''),'p':s.get('f3',0)})
+          except: pass
+
+          scored = []
+          for s in stocks:
+              score = 0
+              if s['p'] and s['p'] > 3: score+=20
+              if s['p'] and s['p'] > 7: score+=10
+              if s['v'] and s['v'] > 2.0: score+=10
+              if s['v'] and s['v'] > 3.0: score+=5
+              if s['f'] and s['f'] > 0: score+=10
+              if s['f'] and s['f'] > 0.5: score+=5
+              if s['t'] and s['t'] > 30: score-=10
+              score = max(0, min(100, score))
+              if score > 0: scored.append({**s, 'score': score})
+          scored.sort(key=lambda x: x['score'], reverse=True)
+
+          result['data'] = {
+              'stocks': stocks[:30], 'scored': scored[:15],
+              'north_flow': north, 'sectors': sectors, 'concepts': concepts,
+              'limit_up': limit_up[:10],
+              'gold': gold, 'dollar': dollar, 'oil': oil, 'vix': vix, 'bond10y': bond10y,
+              'up_count': up, 'down_count': down, 'global_idx': glob_idx
+          }
+
+          sources = []
+          for key in ['stocks.json','sectors.json','concepts.json','northflow.json','margin.json','etf.json','globalidx.json','hk.json','us.json','ah_compare.json','dollar.json','gold.json','oil.json','vix.json','bond10y.json','if_fut.json','bondfut.json','marketvol.json']:
+              if os.path.exists(key): sources.append(key)
+          result['meta'] = {'sources_fetched': len(sources), 'sources_files': sources}
+
+          with open('analysis.json','w') as f:
+              json.dump(result, f, ensure_ascii=False, indent=2)
+          print(f"鍒嗘瀽瀹屾垚: {len(stocks)}鍙釜鑲? {up}娑?{down}璺? {len(limit_up)}鍙定鍋? {len(sources)}涓暟鎹簮")
+          PYEOF
+
+      - name: 18/18 鎺ㄩ€佹姤鍛婂埌寰俊
+        env:
+          PUSHPLUS_TOKEN: ${{ secrets.WX_PUSH_KEY }}
+        run: |
+          echo "=== 18/18 鐢熸垚鎶ュ憡 + 鎺ㄩ€佸井淇?==="
+          python3 << 'PYEOF'
+import json, urllib.request, os
+
+token = os.environ.get('PUSHPLUS_TOKEN', '')
+if not token:
+    print('鏈厤缃?PUSHPLUS_TOKEN锛岃烦杩囨帹閫?)
+    exit(0)
+
+with open('analysis.json') as f:
+    d = json.load(f)
+dr = d.get('data',{})
+meta = d.get('meta',{})
+
+lines = []
+lines.append('馃搱 A鑲＄洏鍓嶅垎鏋愭姤鍛?)
+lines.append(f'鏃堕棿: {d.get("time","")}')
+lines.append('---')
+
+nf = dr.get('north_flow',{})
+if nf:
+    lines.append(f'馃挵 鍖楀悜璧勯噾: {nf.get("t","-")}浜?(娌獅nf.get("s","-")}浜?娣眥nf.get("z","-")}浜?')
+
+sectors = dr.get('sectors',[])
+if sectors:
+    top3 = " | ".join([f'{s.get("n","")} {s.get("p","")}%' for s in sectors[:3]])
+    lines.append(f'馃彚 寮哄娍鏉垮潡: {top3}')
+
+lines.append(f'馃 榛勯噾: {dr.get("gold",{}).get("p","-")}({dr.get("gold",{}).get("c","-")}%) | 缇庢寚: {dr.get("dollar",{}).get("p","-")}')
+lines.append(f'馃洟锔?鍘熸补: {dr.get("oil",{}).get("p","-")} | VIX: {dr.get("vix",{}).get("p","-")} | 10Y: {dr.get("bond10y",{}).get("y","-")}')
+lines.append(f'馃搳 娑ㄨ穼姣? {dr.get("up_count",0)}娑?{dr.get("down_count",0)}璺?)
+
+scored = dr.get('scored',[])
+if scored:
+    lines.append('---')
+    lines.append('馃幆 閲嶇偣鍏虫敞:')
+    for s in scored[:5]:
+        lines.append(f'  {s.get("n","")}({s.get("c","")}) {s.get("p","")}% 璇勫垎{s.get("score",0)}')
+
+lines.append('---')
+lines.append(f'馃摗 鏁版嵁婧? {meta.get("sources_fetched",0)}涓?)
+
+content = '\n'.join(lines)
+print(content)
+print()
+
+push_data = {
+    'token': token,
+    'title': f'A鑲＄洏鍓嶆姤鍛?{d.get("time","")[:10]}',
+    'content': content,
+    'template': 'txt'
+}
+req = urllib.request.Request(
+    'http://www.pushplus.plus/send',
+    data=json.dumps(push_data).encode('utf-8'),
+    headers={'Content-Type': 'application/json'},
+    method='POST'
+)
+try:
+    resp = urllib.request.urlopen(req, timeout=15)
+    result = json.loads(resp.read())
+    if result.get('code') == 200:
+        print('寰俊鎺ㄩ€佹垚鍔?)
+    else:
+        print(f'鎺ㄩ€佽繑鍥炲紓甯? {result}')
+except Exception as e:
+    print(f'鎺ㄩ€佸け璐? {e}')
+PYEOF
