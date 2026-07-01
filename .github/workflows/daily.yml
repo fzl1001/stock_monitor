@@ -8,9 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install deps
+      - name: Install
         run: pip install akshare pandas --quiet 2>/dev/null || true
-      - name: Run analysis
+      - name: Run
         run: python3 daily_report.py
         env:
-          PUSHPLUS_TOKEN: ${{ secrets.WX_PUSH_KEY }}
+          WX_PUSH_KEY: ${{ secrets.WX_PUSH_KEY }}
