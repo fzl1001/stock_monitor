@@ -1,0 +1,17 @@
+name: 相后复白
+on:
+  schedule:
+    - cron: '10 7 * * 1-5'
+  workflow_dispatch:
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 安装保存
+        run: pip install akshare pandas --quiet 2>/dev/null || true
+      - name: 盶名分析
+        run: python3 postmarket_report.py
+      - name: 麎适穿淇😊        env:
+          TOKEN: ${{ secrets.WX_PUSH_KEY }}
+        run: python3 pushplus.py "$TOKEN" "相名复白" "$(date)"
