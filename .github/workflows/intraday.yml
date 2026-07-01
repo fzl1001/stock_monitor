@@ -1,0 +1,17 @@
+name: 鐩樹腑鍒嗘瀽
+on:
+  schedule:
+    - cron: '30 3,6 * * 1-5'
+  workflow_dispatch:
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 瀹夎渚濊禆
+        run: pip install akshare pandas --quiet 2>/dev/null || true
+      - name: 鐩樹腑鍒嗘瀽
+        run: python3 intraday_report.py
+      - name: 鎺ㄩ€佸井淇?        env:
+          TOKEN: ${{ secrets.WX_PUSH_KEY }}
+        run: python3 pushplus.py "$TOKEN" "鐩樹腑鍒嗘瀽" "$(date)"
